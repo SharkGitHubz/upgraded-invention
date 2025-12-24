@@ -1,0 +1,22 @@
+<html>
+  <body>
+    <div id="productCard" style="border:1px solid #ccc; padding:20px; width:300px; font-family:sans-serif;">
+      <h2 id="name">Product Name</h2>
+      <p id="price">$99.99</p>
+      <a id="link" href="#">Link</a>
+    </div>
+    <button onclick="downloadImage()">Download Image</button>
+
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+      function downloadImage() {
+        html2canvas(document.getElementById('productCard')).then(canvas => {
+          const link = document.createElement('a');
+          link.download = 'product.png';
+          link.href = canvas.toDataURL();
+          link.click();
+        });
+      }
+    </script>
+  </body>
+</html>
