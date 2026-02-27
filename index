@@ -1,106 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Product Image Generator</title>
-  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 40px;
-    }
-
-    /* This controls how big the final image is */
-    #productCard {
-      width: 900px;
-      background: white;
-      border-radius: 24px;
-      padding: 60px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-    }
-
-    #productName {
-      font-size: 56px;
-      margin-bottom: 30px;
-    }
-
-    #productPrice {
-      font-size: 48px;
-      color: #e60023;
-      font-weight: bold;
-      margin-bottom: 30px;
-    }
-
-    #productLink {
-      font-size: 28px;
-      color: #0066ff;
-      word-break: break-all;
-    }
-
-    .controls {
-      margin-bottom: 40px;
-    }
-
-    input {
-      display: block;
-      width: 900px;
-      padding: 18px;
-      font-size: 22px;
-      margin-bottom: 20px;
-    }
-
-    button {
-      font-size: 24px;
-      padding: 16px 40px;
-      border-radius: 12px;
-      border: none;
-      background: #000;
-      color: white;
-      cursor: pointer;
-    }
-  </style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile 0.3MP Camera</title>
+<style>
+  body {
+    font-family: system-ui;
+    text-align: center;
+    background: #111;
+    color: white;
+  }
+  video, img {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 12px;
+    margin-top: 10px;
+  }
+  button {
+    padding: 12px 20px;
+    margin: 8px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background: #4CAF50;
+    color: white;
+  }
+</style>
 </head>
 <body>
 
-  <div class="controls">
-    <input id="nameInput" placeholder="Product name">
-    <input id="priceInput" placeholder="Price (e.g. $19.99)">
-    <input id="linkInput" placeholder="Product link">
-    <button onclick="updateCard()">Update Card</button>
-    <button onclick="downloadImage()">Download Image</button>
-  </div>
+<h2>📸 0.3 Megapixel Camera</h2>
 
-  <div id="productCard">
-    <div id="productName">Product Name</div>
-    <div id="productPrice">$0.00</div>
-    <div id="productLink">https://example.com</div>
-  </div>
+<video id="video" autoplay playsinline></video>
+<br>
+<button onclick="startCamera()">Start Camera</button>
+<button onclick="takePhoto()">Snap Photo</button>
 
-  <script>
-    function updateCard() {
-      document.getElementById("productName").innerText =
-        document.getElementById("nameInput").value || "Product Name";
+<canvas id="canvas" style="display:none;"></canvas>
+<img id="output" />
 
-      document.getElementById("productPrice").innerText =
-        document.getElementById("priceInput").value || "$0.00";
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const output = document.getElementById('output');
 
-      document.getElementById("productLink").innerText =
-        document.getElementById("linkInput").value || "https://example.com";
-    }
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { exact: "environment" } }
+    });
+    video.srcObject = stream;
+  } catch (err) {
+    alert("Could not access back camera. Trying default...");
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+  }
+}
 
-    function downloadImage() {
-      html2canvas(document.getElementById("productCard"), {
-        scale: 2  // boosts resolution even more
-      }).then(canvas => {
-        const link = document.createElement("a");
-        link.download = "product.png";
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      });
-    }
-  </script>
+function takePhoto() {
+  const context = canvas.getContext('2d');
+
+  // Maintain aspect ratio but cap at 0.3MP
+  const targetPixels = 300000;
+  const aspectRatio = video.videoWidth / video.videoHeight;
+  
+  let newWidth = Math.sqrt(targetPixels * aspectRatio);
+  let newHeight = newWidth / aspectRatio;
+
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+
+  context.drawImage(video, 0, 0, newWidth, newHeight);
+
+  const compressedImage = canvas.toDataURL('image/jpeg', 0.75);
+  output.src = compressedImage;
+}
+</script>
 
 </body>
 </html>
