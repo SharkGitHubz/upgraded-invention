@@ -1,79 +1,137 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mobile 0.3MP Camera</title>
 <style>
   body {
-    font-family: system-ui;
+    font-family: system-ui, sans-serif;
     text-align: center;
     background: #111;
-    color: white;
+    color: #fff;
+    margin: 0;
+    padding: 20px;
+  }
+  h2 {
+    margin-bottom: 10px;
   }
   video, img {
     width: 100%;
     max-width: 400px;
     border-radius: 12px;
     margin-top: 10px;
+    background: #222;
   }
   button {
     padding: 12px 20px;
-    margin: 8px;
+    margin: 8px 4px;
     font-size: 16px;
     border: none;
     border-radius: 8px;
     background: #4CAF50;
     color: white;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #45a049;
+  }
+  #output {
+    margin-top: 15px;
   }
 </style>
 </head>
 <body>
 
 <h2>📸 0.3 Megapixel Camera</h2>
+<p>Snap photos with your mobile device</p>
 
 <video id="video" autoplay playsinline></video>
 <br>
 <button onclick="startCamera()">Start Camera</button>
+<button onclick="stopCamera()">Stop Camera</button>
+<button onclick="switchCamera()">Switch Camera</button>
 <button onclick="takePhoto()">Snap Photo</button>
+<button onclick="downloadPhoto()">Download Photo</button>
 
 <canvas id="canvas" style="display:none;"></canvas>
-<img id="output" />
+<img id="output" alt="Captured Photo" />
 
 <script>
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const output = document.getElementById('output');
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let output = document.getElementById('output');
+let currentStream = null;
+let usingFront = false;
 
+// Start camera with environment/back camera by default
 async function startCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("Camera API not supported in this browser.");
+    return;
+  }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" } }
+      video: { facingMode: usingFront ? "user" : "environment" }
     });
     video.srcObject = stream;
+    currentStream = stream;
   } catch (err) {
-    alert("Could not access back camera. Trying default...");
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
+    alert("Camera access denied or unavailable.");
+    console.error(err);
   }
 }
 
+// Stop all camera tracks
+function stopCamera() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
+    currentStream = null;
+  }
+}
+
+// Switch between front and back camera
+async function switchCamera() {
+  usingFront = !usingFront;
+  stopCamera();
+  await startCamera();
+}
+
+// Capture a photo at ~0.3MP
 function takePhoto() {
-  const context = canvas.getContext('2d');
+  if (!video.videoWidth || !video.videoHeight) {
+    alert("Camera not ready yet.");
+    return;
+  }
 
-  // Maintain aspect ratio but cap at 0.3MP
-  const targetPixels = 300000;
+  const targetPixels = 300000; // 0.3 MP
   const aspectRatio = video.videoWidth / video.videoHeight;
-  
-  let newWidth = Math.sqrt(targetPixels * aspectRatio);
-  let newHeight = newWidth / aspectRatio;
 
-  canvas.width = newWidth;
-  canvas.height = newHeight;
+  const newHeight = Math.sqrt(targetPixels / aspectRatio);
+  const newWidth = newHeight * aspectRatio;
 
-  context.drawImage(video, 0, 0, newWidth, newHeight);
+  canvas.width = Math.floor(newWidth);
+  canvas.height = Math.floor(newHeight);
 
-  const compressedImage = canvas.toDataURL('image/jpeg', 0.75);
-  output.src = compressedImage;
+  const context = canvas.getContext('2d');
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // Compress to JPEG at 75% quality
+  const imgData = canvas.toDataURL('image/jpeg', 0.75);
+  output.src = imgData;
+}
+
+// Download the captured photo
+function downloadPhoto() {
+  if (!output.src) {
+    alert("No photo captured yet!");
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = output.src;
+  a.download = 'photo.jpg';
+  a.click();
 }
 </script>
 
